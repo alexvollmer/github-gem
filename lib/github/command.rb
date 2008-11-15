@@ -1,3 +1,6 @@
+require "readline"
+require "abbrev"
+
 if RUBY_PLATFORM =~ /mswin|mingw/
   begin
     require 'win32/open3'
@@ -46,7 +49,7 @@ module GitHub
     def sh(*command)
       Shell.new(*command).run
     end
-    
+
     def die(message)
       puts "=> #{message}"
       exit!
@@ -94,6 +97,31 @@ module GitHub
 
     def command(*args)
       git_exec *[ @name, args ]
+    end
+  end
+
+  class ShellCommand < Command
+    def initialize
+    end
+
+    def command(*args)
+      cmds = GitHub.descriptions.keys.concat %w[help quit exit done bye]
+      cmd_abbrevs = cmds.map { |c| c.to_s }.abbrev
+      Readline.completion_proc = proc do |str|
+        cmd_abbrevs[str]
+      end
+
+      loop do
+        line = Readline::readline("github> ")
+        Readline::HISTORY.push(line)
+        cmd, *args = line.split(' ')
+        case cmd
+        when /^exit$/i, /^quit$/i, /^bye$/i, /^done$/i
+          break
+        else
+          GitHub.invoke(cmd, *args)
+        end
+      end
     end
   end
 end

@@ -68,7 +68,7 @@ module GitHub
 
   def find_command(name)
     name = name.to_s
-    commands[name] || GitCommand.new(name) || commands['default']
+    commands[name] || GitCommand.new(name) || commands["default"]
   end
 
   def commands
@@ -126,7 +126,15 @@ module GitHub
   end
 end
 
-GitHub.command :default, :aliases => ['', '-h', 'help', '-help', '--help'] do
+GitHub.command :shell, :aliases => [''] do
+  if ['-h', 'help', '-help', '--help'].member?(GitHub.original_args.first)
+    GitHub.commands['help'].command
+  else
+    GitHub::ShellCommand.new.command
+  end
+end
+
+GitHub.command :default, :aliases => ['-h', 'help', '-help', '--help'] do
   puts "Usage: github command <space separated arguments>", ''
   puts "Available commands:", ''
   longest = GitHub.descriptions.map { |d,| d.to_s.size }.max
