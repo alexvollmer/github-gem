@@ -134,11 +134,19 @@ GitHub.command :shell, :aliases => [''] do
   end
 end
 
-GitHub.command :default, :aliases => ['-h', 'help', '-help', '--help'] do
-  puts "Usage: github command <space separated arguments>", ''
-  puts "Available commands:", ''
+GitHub.command :default, :aliases => ['-h', 'help', '-help', '--help'] do |*args|
+  help_for = args.empty? ? nil : args.first.to_sym
+  if help_for and not GitHub.descriptions[help_for]
+    puts "Unknown command: #{help_for}"
+    return
+  else
+    puts "Usage: github command <space separated arguments>", ''
+    puts "Available commands:", ''
+  end
+
   longest = GitHub.descriptions.map { |d,| d.to_s.size }.max
   GitHub.descriptions.each do |command, desc|
+    next if help_for and help_for != command
     cmdstr = "%-#{longest}s" % command
     puts "  #{cmdstr} => #{desc}"
     flongest = GitHub.flag_descriptions[command].map { |d,| "--#{d}".size }.max

@@ -14,6 +14,14 @@ end
 
 module GitHub
   class Command
+    def self.shell?
+      @shell
+    end
+
+    def self.shell=(val)
+      @shell = val
+    end
+
     def initialize(block)
       (class << self;self end).send :define_method, :command, &block
     end
@@ -43,7 +51,7 @@ module GitHub
     def git_exec(*command)
       cmdstr = ['git', command].flatten.join(' ')
       GitHub.debug "exec: #{cmdstr}"
-      exec cmdstr
+      Command.shell? ? system(cmdstr) : exec(cmdstr)
     end
 
     def sh(*command)
@@ -102,24 +110,25 @@ module GitHub
 
   class ShellCommand < Command
     def initialize
+      Command.shell = true
     end
 
     def command(*args)
-      cmds = GitHub.descriptions.keys.concat %w[help quit exit done bye]
+      cmds = GitHub.descriptions.keys.concat %w[help quit exit]
       cmd_abbrevs = cmds.map { |c| c.to_s }.abbrev
       Readline.completion_proc = proc do |str|
-        cmd_abbrevs[str]
+        str.empty? ? cmds : cmd_abbrevs[str]
       end
 
       loop do
         line = Readline::readline("github> ")
-        Readline::HISTORY.push(line)
         cmd, *args = line.split(' ')
         case cmd
-        when /^exit$/i, /^quit$/i, /^bye$/i, /^done$/i
+        when /^exit$/i, /^quit$/i
           break
         else
           GitHub.invoke(cmd, *args)
+          Readline::HISTORY.push(line)
         end
       end
     end
